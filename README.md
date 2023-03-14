@@ -1,6 +1,6 @@
 # Vue Sui Wallet
 
-- Typescipts SDK and functions that help connecting and integrating with SUI blockchain.
+- Typescipts SDK and components that help connecting and integrating with SUI blockchain.
 
 ## Recommended IDE Setup
 
