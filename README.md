@@ -1,4 +1,4 @@
-# Vue Sui Wallet
+# Vue Sui Wallets
 
 - Typescipts SDK and components that help connecting and integrating with SUI blockchain.
 
