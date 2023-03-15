@@ -7,6 +7,12 @@ import {
 	EventsListeners,
 	EventsNames,
 	EventsOnMethod,
+	StandardConnectInput,
+	StandardConnectMethod,
+	StandardConnectOutput,
+	StandardEventsListeners,
+	StandardEventsNames,
+	StandardEventsOnMethod,
 	SuiSignAndExecuteTransactionInput,
 	SuiSignAndExecuteTransactionMethod,
 	SuiSignAndExecuteTransactionOutput,
@@ -29,105 +35,79 @@ export enum FeatureName {
 	EXP__SIGN_MESSAGE = 'exp:signMessage',
 }
 
-/**
- * Wrap the adapter that supports wallet-standard
- * provider universal interfaces to component usage
- */
-export class WalletAdapter implements IWalletAdapter {
-	private standardWalletAdapter: Wallet;
-
-	constructor(standardWalletAdapter: Wallet) {
-		this.standardWalletAdapter = standardWalletAdapter;
-	}
-
-	get name() {
-		return this.standardWalletAdapter.name;
-	}
-
-	get icon() {
-		return this.standardWalletAdapter.icon;
-	}
-
-	get version() {
-		return this.standardWalletAdapter.version;
-	}
-
-	get accounts() {
-		return this.standardWalletAdapter.accounts;
-	}
-
-	get chains() {
-		return this.standardWalletAdapter.chains;
-	}
-
-	get features() {
-		return this.standardWalletAdapter.features as any;
-	}
-
-	async connect(input: ConnectInput | undefined): Promise<ConnectOutput> {
-		const feature = this.getFeature<{ connect: ConnectMethod }>(FeatureName.STANDARD__CONNECT);
-		try {
-			return await feature.connect(input);
-		} catch (e) {
-			const { code, message, details } = handleConnectionError(e as Error, this.name);
-			throw new WalletError(message, code, details);
-		}
-	}
-
-	async disconnect(): Promise<void> {
-		const feature = this.getFeature<{ disconnect: DisconnectMethod }>(
-			FeatureName.STANDARD__DISCONNECT
-		);
-		try {
-			return await feature.disconnect();
-		} catch (e) {
-			throw new WalletError((e as any).message, ErrorCode.WALLET__DISCONNECT_ERROR);
-		}
-	}
-
-	on(event: EventsNames, listener: EventsListeners[EventsNames]): () => void {
-		const feature = this.getFeature<{ on: EventsOnMethod }>(FeatureName.STANDARD__EVENTS);
-		try {
-			return feature.on<EventsNames>(event, listener);
-		} catch (e) {
-			throw new WalletError((e as any).message, ErrorCode.WALLET__LISTEN_TO_EVENT_ERROR);
-		}
-	}
-
-	async signAndExecuteTransaction(
-		input: SuiSignAndExecuteTransactionInput
-	): Promise<SuiSignAndExecuteTransactionOutput> {
-		const feature = this.getFeature<{
-			signAndExecuteTransaction: SuiSignAndExecuteTransactionMethod;
-		}>(FeatureName.SUI__SIGN_AND_TRANSACTION);
-		try {
-			return await feature.signAndExecuteTransaction(input);
-		} catch (e) {
-			throw new WalletError((e as any).message, ErrorCode.WALLET__SIGN_TX_ERROR);
-		}
-	}
-
-	async signMessage(input: ExpSignMessageInput): Promise<ExpSignMessageOutput> {
-		const feature = this.getFeature<{ signMessage: ExpSignMessageMethod }>(
-			FeatureName.EXP__SIGN_MESSAGE
-		);
-		try {
-			return await feature.signMessage(input);
-		} catch (e) {
-			throw new WalletError((e as any).message, ErrorCode.WALLET__SIGN_MSG_ERROR);
-		}
-	}
-
-	hasFeature(name: string): boolean {
-		const { features } = this.standardWalletAdapter;
-		return has(features, name);
-	}
-
-	private getFeature<T = any>(name: string): T {
-		const { features } = this.standardWalletAdapter;
+export const initializeWalletAdapter = (standardWalletAdapter: Wallet): IWalletAdapter => {
+	const { features, icon, name: walletName, version, accounts, chains } = standardWalletAdapter;
+	const getFeature = <T = any>(name: string): T => {
 		if (!has(features, name)) {
 			throw new WalletNotImplementError(name);
 		}
 		return (features as any)[name];
-	}
-}
+	};
+	return {
+		name: walletName,
+		icon,
+		version,
+		accounts,
+		chains,
+		features: features as any,
+		connect: async (input?: StandardConnectInput): Promise<StandardConnectOutput> => {
+			const feature = getFeature<{ connect: StandardConnectMethod }>(
+				FeatureName.STANDARD__CONNECT
+			);
+			try {
+				return await feature.connect(input);
+			} catch (e) {
+				const { code, message, details } = handleConnectionError(e as Error, walletName);
+				throw new WalletError(message, code, details);
+			}
+		},
+		disconnect: async (): Promise<void> => {
+			const feature = getFeature<{ disconnect: DisconnectMethod }>(
+				FeatureName.STANDARD__DISCONNECT
+			);
+			try {
+				return await feature.disconnect();
+			} catch (e) {
+				throw new WalletError((e as any).message, ErrorCode.WALLET__DISCONNECT_ERROR);
+			}
+		},
+		on: (
+			event: StandardEventsNames,
+			listener: StandardEventsListeners[StandardEventsNames]
+		) => {
+			const feature = getFeature<{ on: StandardEventsOnMethod }>(
+				FeatureName.STANDARD__EVENTS
+			);
+			try {
+				return feature.on<StandardEventsNames>(event, listener);
+			} catch (e) {
+				throw new WalletError((e as any).message, ErrorCode.WALLET__LISTEN_TO_EVENT_ERROR);
+			}
+		},
+		signAndExecuteTransaction: async (
+			input: SuiSignAndExecuteTransactionInput
+		): Promise<SuiSignAndExecuteTransactionOutput> => {
+			const feature = getFeature<{
+				signAndExecuteTransaction: SuiSignAndExecuteTransactionMethod;
+			}>(FeatureName.SUI__SIGN_AND_TRANSACTION);
+			try {
+				return await feature.signAndExecuteTransaction(input);
+			} catch (e) {
+				throw new WalletError((e as any).message, ErrorCode.WALLET__SIGN_TX_ERROR);
+			}
+		},
+		signMessage: async (input: ExpSignMessageInput): Promise<ExpSignMessageOutput> => {
+			const feature = getFeature<{ signMessage: ExpSignMessageMethod }>(
+				FeatureName.EXP__SIGN_MESSAGE
+			);
+			try {
+				return await feature.signMessage(input);
+			} catch (e) {
+				throw new WalletError((e as any).message, ErrorCode.WALLET__SIGN_MSG_ERROR);
+			}
+		},
+		hasFeature: (name: string): boolean => {
+			return has(features, name);
+		},
+	};
+};

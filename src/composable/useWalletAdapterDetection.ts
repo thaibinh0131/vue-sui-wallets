@@ -1,6 +1,6 @@
 import { getWallets, Wallet, Wallets } from '@wallet-standard/core';
 import { IWalletAdapter } from '../types/wallet.type';
-import { WalletAdapter } from '../wallet/wallet-adapter';
+import { initializeWalletAdapter } from '../wallet/wallet-adapter';
 import { isNonEmptyArray, isStandardWalletAdapterCompatibleWallet } from '../utils';
 import { onMounted, ref, onBeforeUnmount } from 'vue';
 /**
@@ -29,9 +29,9 @@ export function useWalletAdapterDetection() {
 			// setAvailableWalletAdapters(
 			// 	initWalletAdapters.map((newAdapter) => new WalletAdapter(newAdapter))
 			// );
-			availableWalletAdapters.value = initWalletAdapters.map(
-				(newAdapter) => new WalletAdapter(newAdapter)
-			);
+			availableWalletAdapters.value = initWalletAdapters.map((newAdapter) => {
+				return initializeWalletAdapter(newAdapter);
+			});
 		}
 
 		clearListeners.value = standardWalletManager.value.on(
@@ -54,8 +54,8 @@ export function useWalletAdapterDetection() {
 						allAdapters.push(newAdapter);
 					});
 				// normalize adapters
-				availableWalletAdapters.value = allAdapters.map(
-					(wallet) => new WalletAdapter(wallet)
+				availableWalletAdapters.value = allAdapters.map((wallet) =>
+					initializeWalletAdapter(wallet)
 				);
 			}
 		);
@@ -66,6 +66,6 @@ export function useWalletAdapterDetection() {
 	});
 
 	return {
-		data: availableWalletAdapters,
+		availableWalletAdapters,
 	};
 }

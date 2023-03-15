@@ -34,7 +34,7 @@ export const useWallet = (params?: {
 	autoConnect?: boolean;
 }) => {
 	const {
-		defaultWallets = walletSupports.value ?? AllDefaultWallets,
+		defaultWallets = walletSupports.value.length ? walletSupports.value : AllDefaultWallets,
 		chains = chainsList.value ?? DefaultChains,
 		autoConnect = shouldAutoConnect.value !== undefined ?? true,
 	} = params || {};
@@ -74,7 +74,10 @@ export const useWallet = (params?: {
 				chain.value = targetChain ?? UnknownChain;
 			}
 
-			walletAdapter.value = adapter;
+			walletAdapter.value = {
+				...adapter,
+				accounts: res.accounts,
+			};
 			status.value = ConnectionStatus.CONNECTED;
 
 			const storage = new Storage();
@@ -109,6 +112,8 @@ export const useWallet = (params?: {
 			walletAdapter.value = undefined;
 			status.value = ConnectionStatus.DISCONNECTED;
 			chain.value = chains?.[0] ?? UnknownChain;
+			const storage = new Storage();
+			storage.setItem(StorageKey.LAST_CONNECT_WALLET_NAME, '');
 		}
 	};
 	const selectWallet = async (walletName: string) => {
@@ -138,6 +143,7 @@ export const useWallet = (params?: {
 
 		// filter event and params to decide when to emit
 		const off = _wallet.on('change', (params) => {
+			console.debug({ params });
 			if (event === 'change') {
 				const _listener = listener as WalletEventListeners['change'];
 				_listener(params);

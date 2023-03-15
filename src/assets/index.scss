@@ -1,0 +1,15 @@
+:root {
+	--color-text-primary: #000000;
+	--color-text-secondary: #0a0e2280;
+    --color-bg-hover: #0a0e221a;
+	--color-bg-primary: #ffffff;
+	--color-bg-button: linear-gradient(84.92deg, #ff3844 7.47%, #ff7f08 98.77%);
+}
+
+button {
+	border: none;
+	outline: none;
+    background-color: unset;
+    color: var(--color-text-primary);
+    
+}

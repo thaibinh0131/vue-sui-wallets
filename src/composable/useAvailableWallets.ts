@@ -4,11 +4,11 @@ import { isNonEmptyArray } from '../utils';
 import { computed } from 'vue';
 
 export const useAvailableWallets = (defaultWallets: IDefaultWallet[]) => {
-	const { data: availableWalletAdapters } = useWalletAdapterDetection();
+	const { availableWalletAdapters } = useWalletAdapterDetection();
 	// configured wallets
 	const configuredWallets = computed(() => {
 		if (!isNonEmptyArray(defaultWallets)) return [];
-		if (!isNonEmptyArray(availableWalletAdapters)) {
+		if (!isNonEmptyArray(availableWalletAdapters.value)) {
 			return defaultWallets.map(
 				(item) =>
 					({
