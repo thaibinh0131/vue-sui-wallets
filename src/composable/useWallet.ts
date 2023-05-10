@@ -2,8 +2,7 @@ import { ConnectionStatus, IDefaultWallet, IWallet, IWalletAdapter } from '../ty
 import { KitError } from '../errors';
 import {
 	StandardConnectInput,
-	SuiSignAndExecuteTransactionInput,
-	SuiSignAndExecuteTransactionOutput,
+	SuiSignAndExecuteTransactionBlockInput,
 	WalletAccount,
 } from '@mysten/wallet-standard';
 import { ExpSignMessageOutput } from '../wallet-standard/features/exp_sign-message';
@@ -173,10 +172,12 @@ export const useWallet = (params?: {
 		const _wallet = walletAdapter.value as IWalletAdapter;
 		return _wallet.accounts;
 	};
-	const signAndExecuteTransaction = async (transaction: SuiSignAndExecuteTransactionInput) => {
+	const signAndExecuteTransactionBlock = async (
+		transaction: SuiSignAndExecuteTransactionBlockInput
+	) => {
 		ensureCallable(walletAdapter.value, status.value);
 		const _wallet = walletAdapter.value as IWalletAdapter;
-		return await _wallet.signAndExecuteTransaction(transaction);
+		return await _wallet.signAndExecuteTransactionBlock(transaction);
 	};
 	const signMessage = async (input: { message: Uint8Array }) => {
 		ensureCallable(walletAdapter.value, status.value);
@@ -189,15 +190,7 @@ export const useWallet = (params?: {
 			message: input.message,
 		});
 	};
-	const executeMoveCall = async (data: MoveCallTransaction) => {
-		ensureCallable(walletAdapter.value, status.value);
-		return signAndExecuteTransaction({
-			transaction: {
-				kind: 'moveCall',
-				data: data,
-			},
-		});
-	};
+
 	const getPublicKey = () => {
 		ensureCallable(walletAdapter.value, status.value);
 		return Promise.resolve((account.value as WalletAccount).publicKey);
@@ -231,7 +224,6 @@ export const useWallet = (params?: {
 		getAccounts,
 		signMessage,
 		getPublicKey,
-		executeMoveCall,
 		setChain,
 	};
 };

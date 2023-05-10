@@ -51,6 +51,7 @@ export const useAvailableWallets = (defaultWallets: IDefaultWallet[]) => {
 				return {
 					name: adapter.name,
 					adapter: adapter,
+					label: adapter.name,
 					installed: true,
 					iconUrl: adapter.icon,
 					downloadUrl: {

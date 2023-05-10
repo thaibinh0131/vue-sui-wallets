@@ -18,28 +18,6 @@ const initializeListeners = () => {
 	});
 };
 
-const callFunction = async () => {
-	const data = {
-		packageObjectId: '0x2ee3923fc6b6c0bb61c3aa1d1e24206ecc8192b4',
-		module: 'maze',
-		function: 'down',
-		typeArguments: [],
-		arguments: [
-			'0x932b6d02793bcb54b1eec8bd0af120da21852f77',
-			'0x1743f09452dfd43db729d790f0189ea408632820',
-			1,
-		],
-		gasBudget: 10000,
-	};
-	const res = await wallet.value?.signAndExecuteTransactionBlock({
-		transaction: {
-			kind: 'moveCall',
-			data,
-		},
-	});
-	console.debug({ res });
-};
-
 watch(connected, (val) => {
 	if (val) {
 		initializeListeners();
@@ -77,7 +55,6 @@ watch(connected, (val) => {
 		</button>
 		<div v-else>
 			<button @click="disconnect">{{ address }}</button>
-			<button @click="callFunction">Call Function</button>
 		</div>
 		<ConnectWalletModal v-model="showModal" />
 	</div>
