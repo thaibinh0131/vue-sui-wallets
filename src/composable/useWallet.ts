@@ -4,6 +4,7 @@ import {
 	StandardConnectInput,
 	SuiSignAndExecuteTransactionBlockInput,
 	WalletAccount,
+	SuiSignTransactionBlockInput,
 } from '@mysten/wallet-standard';
 import { ExpSignMessageOutput } from '../wallet-standard/features/exp_sign-message';
 import type { MoveCallTransaction } from '@mysten/sui.js';
@@ -19,6 +20,7 @@ import { Storage } from '../utils/storage';
 import { StorageKey } from '@/constants';
 import { useAvailableWallets } from './useAvailableWallets';
 import { useAutoConnect } from './useAutoConnect';
+import { IdentifierString } from '@wallet-standard/core';
 
 const walletAdapter = ref<IWalletAdapter>();
 const status = ref<ConnectionStatus>(ConnectionStatus.DISCONNECTED);
@@ -67,12 +69,16 @@ export const useWallet = (params?: {
 			const res = await adapter.connect(options);
 			// NOTE: hack implementation for getting current network when connected
 			// Still waiting for wallet-standard's progress
+			console.debug({ res });
 			if (isNonEmptyArray((res as any)?.chains)) {
 				const chainId = (res as any)?.chains[0];
 				const targetChain = chains.find((item) => item.id === chainId);
+				console.debug({ targetChain });
 				chain.value = targetChain ?? UnknownChain;
+			} else {
+				chain.value = DefaultChains[0];
 			}
-
+			console.debug({ chain: chain.value });
 			walletAdapter.value = {
 				...adapter,
 				accounts: res.accounts,
@@ -148,9 +154,9 @@ export const useWallet = (params?: {
 				_listener(params);
 				return;
 			}
-			if (params.chains && event === 'chainChange') {
+			if (params.accounts && params.accounts[0].chains && event === 'chainChange') {
 				const _listener = listener as WalletEventListeners['chainChange'];
-				_listener({ chain: (params.chains as any)?.[0] });
+				_listener({ chain: (params.accounts[0].chains as any)?.[0] });
 				return;
 			}
 			if (params.accounts && event === 'accountChange') {
@@ -173,12 +179,34 @@ export const useWallet = (params?: {
 		return _wallet.accounts;
 	};
 	const signAndExecuteTransactionBlock = async (
-		transaction: SuiSignAndExecuteTransactionBlockInput
+		input: Omit<SuiSignAndExecuteTransactionBlockInput, 'account' | 'chain'>
 	) => {
 		ensureCallable(walletAdapter.value, status.value);
+		if (!account.value) {
+			throw new KitError('no active account');
+		}
 		const _wallet = walletAdapter.value as IWalletAdapter;
-		return await _wallet.signAndExecuteTransactionBlock(transaction);
+		return await _wallet.signAndExecuteTransactionBlock({
+			account: account.value,
+			chain: chain.value.id as IdentifierString,
+			...input,
+		});
 	};
+	const signTransactionBlock = async (
+		input: Omit<SuiSignTransactionBlockInput, 'account' | 'chain'>
+	) => {
+		ensureCallable(walletAdapter.value, status.value);
+		if (!account.value) {
+			throw new KitError('no active account');
+		}
+		const _wallet = walletAdapter.value as IWalletAdapter;
+		return await _wallet.signTransactionBlock({
+			account: account.value,
+			chain: chain.value.id as IdentifierString,
+			...input,
+		});
+	};
+
 	const signMessage = async (input: { message: Uint8Array }) => {
 		ensureCallable(walletAdapter.value, status.value);
 		if (!account.value) {
@@ -198,6 +226,7 @@ export const useWallet = (params?: {
 	useAutoConnect(selectWallet, allAvailableWallets, autoConnect);
 	const setChain = (chainId: string) => {
 		const newChain = chains.find((item) => item.id === chainId);
+		console.debug({ newChain });
 		if (!newChain) {
 			chain.value = UnknownChain;
 			return;
@@ -212,7 +241,7 @@ export const useWallet = (params?: {
 		configuredWallets,
 		detectedWallets,
 		adapter: computed(() => walletAdapter.value),
-		wallet: computed(() => walletAdapter.value),
+		name: computed(() => walletAdapter.value?.name),
 		status: computed(() => status.value),
 		account,
 		address: computed(() => account.value?.address),
@@ -225,5 +254,7 @@ export const useWallet = (params?: {
 		signMessage,
 		getPublicKey,
 		setChain,
+		signAndExecuteTransactionBlock,
+		signTransactionBlock,
 	};
 };

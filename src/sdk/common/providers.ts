@@ -70,6 +70,7 @@ class QueryProvider {
 
 	public async getOwnedNfts(address: string): Promise<NftObject[]> {
 		const objects = await this.getOwnedObjects(address);
+		console.debug({ objects });
 		const res = objects
 			.map((item) => ({
 				id: item.objectId,
