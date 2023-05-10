@@ -22,13 +22,18 @@ export function useWalletAdapterDetection() {
 
 	onMounted(() => {
 		standardWalletManager.value = getWallets();
+		console.debug({
+			standardWalletManager: standardWalletManager.value,
+			wallets: standardWalletManager.value.get(),
+		});
 		const initWalletAdapters = getInitStandardWalletAdapters();
-		// console.log('initWalletAdapters', initWalletAdapters)
+		console.log('initWalletAdapters', initWalletAdapters);
 
 		if (isNonEmptyArray(initWalletAdapters)) {
 			// setAvailableWalletAdapters(
 			// 	initWalletAdapters.map((newAdapter) => new WalletAdapter(newAdapter))
 			// );
+			console.debug({ initWalletAdapters });
 			availableWalletAdapters.value = initWalletAdapters.map((newAdapter) => {
 				return initializeWalletAdapter(newAdapter);
 			});
@@ -37,7 +42,7 @@ export function useWalletAdapterDetection() {
 		clearListeners.value = standardWalletManager.value.on(
 			'register',
 			(...newAdapters: Wallet[]) => {
-				// console.log('register newAdapters', newAdapters)
+				console.log('register newAdapters', newAdapters);
 				if (!standardWalletManager.value) return;
 				const initWalletAdapters = getInitStandardWalletAdapters();
 				const allAdapters = [...initWalletAdapters];
@@ -46,9 +51,7 @@ export function useWalletAdapterDetection() {
 					.filter(isStandardWalletAdapterCompatibleWallet)
 					.filter(
 						(newAdapter) =>
-							!allAdapters.find(
-								(existAdapter) => existAdapter.name === newAdapter.name
-							)
+							!allAdapters.find((existAdapter) => existAdapter.name === newAdapter.name)
 					)
 					.forEach((newAdapter) => {
 						allAdapters.push(newAdapter);

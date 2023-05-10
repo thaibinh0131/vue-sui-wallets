@@ -1,11 +1,12 @@
 import {
 	getMoveObject,
-	getObjectExistsResponse,
 	JsonRpcProvider,
 	SuiMoveObject,
-	SuiObject,
 	Coin as CoinAPI,
 	Connection,
+	getSuiObjectData,
+	SuiObjectResponse,
+	SuiObjectData,
 } from '@mysten/sui.js';
 import { Coin, CoinObject, Nft, NftObject } from './objects';
 
@@ -26,28 +27,40 @@ class QueryProvider {
 		this.provider = new JsonRpcProvider(new Connection({ fullnode: endpoint }));
 	}
 
-	public async getActiveValidators(): Promise<SuiMoveObject[]> {
-		const contents = await this.provider.getObject(SUI_SYSTEM_STATE_OBJECT_ID);
-		const data = (contents.details as SuiObject).data;
-		const validators = (data as SuiMoveObject).fields.validators;
-		const activeValidators = (validators as SuiMoveObject).fields.active_validators;
-		return activeValidators as SuiMoveObject[];
-	}
+	public async getOwnedObjects(address: string): Promise<SuiObjectData[]> {
+		let hasNextPage = true;
+		let nextCursor = null;
+		let objects: SuiObjectData[] = [];
+		while (hasNextPage) {
+			const resp: any = await this.provider.getOwnedObjects({
+				owner: address,
+				cursor: nextCursor,
+				options: {
+					showType: true,
+					showDisplay: true,
+					showContent: true,
+					showOwner: true,
+				},
+			});
+			const sui_object_responses = resp.data as SuiObjectResponse[];
 
-	public async getOwnedObjects(address: string): Promise<SuiObject[]> {
-		const objectInfos = await this.provider.getObjectsOwnedByAddress(address);
-		const objectIds = objectInfos.map((obj) => obj.objectId);
-		const resps = await this.provider.getObjectBatch(objectIds);
-		return resps
-			.filter((resp) => resp.status === 'Exists')
-			.map((resp) => getObjectExistsResponse(resp) as SuiObject);
+			sui_object_responses?.forEach((r) => {
+				const obj = getSuiObjectData(r);
+				if (obj) {
+					objects.push(obj);
+				}
+			});
+			hasNextPage = resp.hasNextPage;
+			nextCursor = resp.nextCursor;
+		}
+		return objects;
 	}
 
 	public async getOwnedCoins(address: string): Promise<CoinObject[]> {
 		const objects = await this.getOwnedObjects(address);
 		const res = objects
 			.map((item) => ({
-				id: item.reference.objectId,
+				id: item.objectId,
 				object: getMoveObject(item),
 			}))
 			.filter((item) => item.object && CoinAPI.isCoin(item.object))
@@ -59,7 +72,7 @@ class QueryProvider {
 		const objects = await this.getOwnedObjects(address);
 		const res = objects
 			.map((item) => ({
-				id: item.reference.objectId,
+				id: item.objectId,
 				object: getMoveObject(item),
 				previousTransaction: item.previousTransaction,
 			}))
@@ -70,13 +83,4 @@ class QueryProvider {
 			});
 		return res;
 	}
-
-	public async getNormalizedMoveFunction(
-		objectId: string,
-		moduleName: string,
-		functionName: string
-	) {
-		return await this.provider.getNormalizedMoveFunction(objectId, moduleName, functionName);
-	}
-
 }
