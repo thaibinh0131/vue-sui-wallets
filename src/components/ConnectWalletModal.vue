@@ -61,7 +61,7 @@ const handleSelectWallet = async (wallet: IWallet) => {
 			await selectWallet(wallet.name);
 			showModal.value = false;
 			props.onConnectSuccess();
-            clearActiveWallet()
+			clearActiveWallet();
 		} catch (error) {
 			props.onConnectError(error);
 		}
@@ -187,7 +187,7 @@ const handleSelectWallet = async (wallet: IWallet) => {
 	}
 	&__body {
 		margin: 20px;
-		background-color: var(--color-bg-primary);
+		background-color: white;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.33);
 		border-radius: 16px;
 		padding: 16px;
@@ -215,5 +215,20 @@ const handleSelectWallet = async (wallet: IWallet) => {
 .modal-leave-active .connect-modal {
 	-webkit-transform: scale(1.1);
 	transform: scale(1.1);
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+}
+::-webkit-scrollbar-track {
+	@apply bg-transparent;
+	border-left: 1px solid transparent;
+}
+::-webkit-scrollbar-thumb {
+	border-width: 4px;
+
+	border-color: transparent;
+	background-color: #333;
+	border-radius: 9999px;
 }
 </style>

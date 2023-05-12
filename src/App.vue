@@ -2,43 +2,39 @@
 import { ref, watch } from 'vue';
 import HelloWorld from './components/HelloWorld.vue';
 import ConnectWalletModal from './components/ConnectWalletModal.vue';
-import { useWallet, useMyNfts } from './composable';
+import { useWallet, useNftsOwnedByAddressInSpecificChain, useOwnedCoinsWithBalances } from './composable';
 import { AccountChangeParams, ChainChangeParams } from './types';
 import type { StandardEventsChangeProperties } from '@wallet-standard/features';
-import { TransactionBlock } from '@mysten/sui.js';
+import { TransactionBlock, normalizeSuiObjectId } from '@mysten/sui.js';
 
 const showModal = ref(false);
-const { address, chain, on, connected, disconnect, signAndExecuteTransactionBlock } = useWallet();
-const { getMyNfts } = useMyNfts();
-
-const initializeListeners = () => {
-	on('accountChange', (params: AccountChangeParams) => {
-		console.debug({ params }, 'ACCOUNT');
-	});
-	on('chainChange', (params: ChainChangeParams) => {
-		console.debug({ params }, 'CHAIN');
-	});
-};
+const { address, chain, on, connected, disconnect, moveCall } = useWallet();
+const { getOwnedNfts } = useNftsOwnedByAddressInSpecificChain();
+const { getOwnedCoinsAndBalances } = useOwnedCoinsWithBalances();
 
 async function handleExecuteMoveCall(target: string | undefined) {
 	if (!target) return;
 
 	try {
-		const tx = new TransactionBlock();
-		tx.moveCall({
-			target: target as any,
+		// const tx = new TransactionBlock();
+		// const coin = '0x62cf7503381603d73ac97303e5662448d62462bb0870ea862a4b1a24e311d7c0';
+		// tx.moveCall({
+		// 	target: target as any,
+		// 	arguments: [
+		// 		tx.pure('0x1eb7ba8dfef48e5d715abb2d4ce4fe56309eb6913d6bde63209d5aaa702894c1'),
+		// 		tx.makeMoveVec({ objects: [tx.object(coin)] }),
+		// 	],
+		// });
+		// const resData = await signAndExecuteTransactionBlock({
+		// 	transactionBlock: tx,
+		// });
+		const resData = await moveCall({
+			target,
 			arguments: [
-				tx.pure('Binh NFT'),
-				tx.pure('Binh Sample NFT'),
-				tx.pure(
-					'https://xc6fbqjny4wfkgukliockypoutzhcqwjmlw2gigombpp2ynufaxa.arweave.net/uLxQwS3HLFUailocJWHupPJxQsli7aMgzmBe_WG0KC4'
-				),
+				'0x1eb7ba8dfef48e5d715abb2d4ce4fe56309eb6913d6bde63209d5aaa702894c1',
+				['0x62cf7503381603d73ac97303e5662448d62462bb0870ea862a4b1a24e311d7c0'],
 			],
 		});
-		const resData = await signAndExecuteTransactionBlock({
-			transactionBlock: tx,
-		});
-		console.log('executeMoveCall success', resData);
 
 		alert('executeMoveCall succeeded (see response in the console)');
 	} catch (e) {
@@ -47,10 +43,10 @@ async function handleExecuteMoveCall(target: string | undefined) {
 	}
 }
 
-watch(connected, (val) => {
+watch(address, (val) => {
 	if (val) {
-		initializeListeners();
-		getMyNfts();
+		getOwnedCoinsAndBalances();
+		getOwnedNfts();
 	}
 });
 </script>
@@ -89,7 +85,7 @@ watch(connected, (val) => {
 				v-if="address"
 				@click="
 					handleExecuteMoveCall(
-						'0x4d33b1ac13f136aad11d890d37b7aef717306ab0df05743e6848295e3f2b0b15::nft::mint'
+						'0xfd1d8f1dd3861418b407c02ffba57e1e830108d9303f02beec90ba283cc1351a::nft::mint'
 					)
 				"
 			>

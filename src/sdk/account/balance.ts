@@ -1,3 +1,4 @@
+import { CoinObjectDto } from '../common/objects';
 import { Provider } from '../common/providers';
 import { SUI_TYPE_ARG } from '@mysten/sui.js';
 
@@ -19,6 +20,19 @@ export class AccountBalance {
 		const target = tokenBalanceList.find((item) => item.typeArg === tokenTypeArg);
 		return target?.balance || BigInt(0);
 	}
+	getBalanceFromCoinObjects(
+		tokenTypeArg: string = SUI_TYPE_ARG,
+		coinObjects: CoinObjectDto[]
+	): bigint | undefined {
+		const result = new Map<string, bigint>();
+		for (const object of coinObjects) {
+			result.has(object.typeArg)
+				? result.set(object.typeArg, (result.get(object.typeArg) as bigint) + object.balance)
+				: result.set(object.typeArg, object.balance);
+		}
+		const target = result.get(tokenTypeArg);
+		return target;
+	}
 
 	/**
 	 * Get owned coins list with balance of all types
@@ -27,12 +41,12 @@ export class AccountBalance {
 		const objects = await this.provider.query.getOwnedCoins(this.address);
 		const result = new Map<string, bigint>();
 		for (const object of objects) {
-			result.has(object.typeArg)
+			result.has(object.coinObjectDto.typeArg)
 				? result.set(
-						object.typeArg,
-						(result.get(object.typeArg) as bigint) + object.balance
+						object.coinObjectDto.typeArg,
+						(result.get(object.coinObjectDto.typeArg) as bigint) + object.coinObjectDto.balance
 				  )
-				: result.set(object.typeArg, object.balance);
+				: result.set(object.coinObjectDto.typeArg, object.coinObjectDto.balance);
 		}
 		return Array.from(result.entries()).map((item) => ({
 			typeArg: item[0],

@@ -12,7 +12,7 @@ const standardWalletManager = ref<Wallets>();
 // normalized adapters
 const availableWalletAdapters = ref<IWalletAdapter[]>([]);
 const clearListeners = ref<() => void>();
-// console.log('availableWalletAdapters', availableWalletAdapters)
+// log('availableWalletAdapters', availableWalletAdapters)
 export function useWalletAdapterDetection() {
 	function getInitStandardWalletAdapters(): Wallet[] {
 		if (!standardWalletManager.value) return [];
@@ -22,18 +22,13 @@ export function useWalletAdapterDetection() {
 
 	onMounted(() => {
 		standardWalletManager.value = getWallets();
-		console.debug({
-			standardWalletManager: standardWalletManager.value,
-			wallets: standardWalletManager.value.get(),
-		});
+
 		const initWalletAdapters = getInitStandardWalletAdapters();
-		console.log('initWalletAdapters', initWalletAdapters);
 
 		if (isNonEmptyArray(initWalletAdapters)) {
 			// setAvailableWalletAdapters(
 			// 	initWalletAdapters.map((newAdapter) => new WalletAdapter(newAdapter))
 			// );
-			console.debug({ initWalletAdapters });
 			availableWalletAdapters.value = initWalletAdapters.map((newAdapter) => {
 				return initializeWalletAdapter(newAdapter);
 			});
@@ -42,7 +37,6 @@ export function useWalletAdapterDetection() {
 		clearListeners.value = standardWalletManager.value.on(
 			'register',
 			(...newAdapters: Wallet[]) => {
-				console.log('register newAdapters', newAdapters);
 				if (!standardWalletManager.value) return;
 				const initWalletAdapters = getInitStandardWalletAdapters();
 				const allAdapters = [...initWalletAdapters];

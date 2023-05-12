@@ -28,9 +28,8 @@ export const UnknownChain: Chain = {
 	rpcUrl: '',
 };
 
-export const DefaultChains = [SuiDevnetChain, SuiTestnetChain];
+export const DefaultChains = [SuiTestnetChain, SuiMainnetChain];
 export const defaultChainsAsObject = {
-	[SuiChainId.DEVNET]: SuiDevnetChain,
 	[SuiChainId.TestNET]: SuiTestnetChain,
 	[SuiChainId.MAINNET]: SuiMainnetChain,
 };

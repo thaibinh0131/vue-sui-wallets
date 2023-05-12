@@ -7,7 +7,7 @@ import {
 	SuiSignTransactionBlockInput,
 } from '@mysten/wallet-standard';
 import { ExpSignMessageOutput } from '../wallet-standard/features/exp_sign-message';
-import type { MoveCallTransaction } from '@mysten/sui.js';
+import type { TransactionBlock } from '@mysten/sui.js';
 import { WalletEvent, WalletEventListeners } from '../types/event.type';
 import { FeatureName } from '../wallet/wallet-adapter';
 
@@ -21,6 +21,7 @@ import { StorageKey } from '@/constants';
 import { useAvailableWallets } from './useAvailableWallets';
 import { useAutoConnect } from './useAutoConnect';
 import { IdentifierString } from '@wallet-standard/core';
+import { SuiTxBlock, SuiTxArg, SuiVecTxArg } from '../sdk';
 
 const walletAdapter = ref<IWalletAdapter>();
 const status = ref<ConnectionStatus>(ConnectionStatus.DISCONNECTED);
@@ -28,6 +29,7 @@ const walletOffListeners = ref<(() => void)[]>([]);
 const walletSupports = ref<IDefaultWallet[]>([]);
 const shouldAutoConnect = ref<boolean | undefined>();
 const chainsList = ref<Chain[]>([]);
+const chain = ref<Chain>(UnknownChain);
 
 export const useWallet = (params?: {
 	defaultWallets?: IDefaultWallet[];
@@ -49,7 +51,6 @@ export const useWallet = (params?: {
 
 	const { allAvailableWallets, configuredWallets, detectedWallets } =
 		useAvailableWallets(defaultWallets);
-	const chain = ref<Chain>(isNonEmptyArray(chains) ? chains[0] : UnknownChain);
 	const isCallable = (walletAdapter: IWalletAdapter | undefined, status: ConnectionStatus) => {
 		return walletAdapter && status === ConnectionStatus.CONNECTED;
 	};
@@ -69,16 +70,13 @@ export const useWallet = (params?: {
 			const res = await adapter.connect(options);
 			// NOTE: hack implementation for getting current network when connected
 			// Still waiting for wallet-standard's progress
-			console.debug({ res });
-			if (isNonEmptyArray((res as any)?.chains)) {
-				const chainId = (res as any)?.chains[0];
+			if (isNonEmptyArray((res as any)?.accounts.chains)) {
+				const chainId = (res as any)?.accounts.chains[0];
 				const targetChain = chains.find((item) => item.id === chainId);
-				console.debug({ targetChain });
 				chain.value = targetChain ?? UnknownChain;
 			} else {
 				chain.value = DefaultChains[0];
 			}
-			console.debug({ chain: chain.value });
 			walletAdapter.value = {
 				...adapter,
 				accounts: res.accounts,
@@ -148,7 +146,6 @@ export const useWallet = (params?: {
 
 		// filter event and params to decide when to emit
 		const off = _wallet.on('change', (params) => {
-			console.debug({ params });
 			if (event === 'change') {
 				const _listener = listener as WalletEventListeners['change'];
 				_listener(params);
@@ -218,7 +215,20 @@ export const useWallet = (params?: {
 			message: input.message,
 		});
 	};
-
+	const signAndSendTxn = (tx: TransactionBlock | SuiTxBlock) => {
+		tx = tx instanceof SuiTxBlock ? tx.txBlock : tx;
+		return signAndExecuteTransactionBlock({ transactionBlock: tx });
+	};
+	const moveCall = async (callParams: {
+		target: string;
+		arguments?: (SuiTxArg | SuiVecTxArg)[];
+		typeArguments?: string[];
+	}) => {
+		const { target, arguments: args = [], typeArguments = [] } = callParams;
+		const tx = new SuiTxBlock();
+		tx.moveCall(target, args, typeArguments);
+		return signAndSendTxn(tx);
+	};
 	const getPublicKey = () => {
 		ensureCallable(walletAdapter.value, status.value);
 		return Promise.resolve((account.value as WalletAccount).publicKey);
@@ -226,7 +236,6 @@ export const useWallet = (params?: {
 	useAutoConnect(selectWallet, allAvailableWallets, autoConnect);
 	const setChain = (chainId: string) => {
 		const newChain = chains.find((item) => item.id === chainId);
-		console.debug({ newChain });
 		if (!newChain) {
 			chain.value = UnknownChain;
 			return;
@@ -256,5 +265,6 @@ export const useWallet = (params?: {
 		setChain,
 		signAndExecuteTransactionBlock,
 		signTransactionBlock,
+		moveCall,
 	};
 };

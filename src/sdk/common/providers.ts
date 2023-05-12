@@ -8,7 +8,7 @@ import {
 	SuiObjectResponse,
 	SuiObjectData,
 } from '@mysten/sui.js';
-import { Coin, CoinObject, Nft, NftObject } from './objects';
+import { Coin, CoinObject, Nft, NftObject, CoinObjectDto } from './objects';
 
 export const SUI_SYSTEM_STATE_OBJECT_ID = '0x0000000000000000000000000000000000000005';
 
@@ -56,25 +56,33 @@ class QueryProvider {
 		return objects;
 	}
 
-	public async getOwnedCoins(address: string): Promise<CoinObject[]> {
+	public async getOwnedCoins(
+		address: string
+	): Promise<{ coinAsSuiMoveObject?: SuiMoveObject; coinObjectDto: CoinObjectDto }[]> {
 		const objects = await this.getOwnedObjects(address);
 		const res = objects
 			.map((item) => ({
 				id: item.objectId,
-				object: getMoveObject(item),
+				object: { ...getMoveObject(item), type: item.type } as SuiMoveObject,
 			}))
-			.filter((item) => item.object && CoinAPI.isCoin(item.object))
-			.map((item) => Coin.getCoinObject(item.object as SuiMoveObject));
+			.filter((item) => {
+				return item.object && CoinAPI.isCoin(item.object);
+			})
+			.map((item) => {
+				return {
+					coinAsSuiMoveObject: item.object,
+					coinObjectDto: Coin.getCoinObject(item.object as SuiMoveObject).toDto(),
+				};
+			});
 		return res;
 	}
 
 	public async getOwnedNfts(address: string): Promise<NftObject[]> {
 		const objects = await this.getOwnedObjects(address);
-		console.debug({ objects });
 		const res = objects
 			.map((item) => ({
 				id: item.objectId,
-				object: getMoveObject(item),
+				object: { ...getMoveObject(item), type: item.type } as SuiMoveObject,
 				previousTransaction: item.previousTransaction,
 			}))
 			.filter((item) => item.object && Nft.isNft(item.object))
